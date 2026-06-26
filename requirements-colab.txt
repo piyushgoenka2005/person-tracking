@@ -1,0 +1,7 @@
+# All dependencies for Google Colab (YOLO + LocateAnything comparison).
+# Usage: pip install -r requirements-colab.txt
+
+-r requirements.txt
+-r requirements-locateanything.txt
+huggingface_hub>=0.26.0
+accelerate>=1.0.0

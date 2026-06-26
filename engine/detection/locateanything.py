@@ -28,13 +28,20 @@ logger = get_logger(__name__)
 BOX_PATTERN = re.compile(r"<box><(\d+)><(\d+)><(\d+)><(\d+)></box>")
 
 
+def _has_model_weights(model_dir: Path) -> bool:
+    """True when at least one safetensors shard is present."""
+    if not model_dir.is_dir():
+        return False
+    return any(model_dir.glob("*.safetensors")) or any(model_dir.glob("**/*.safetensors"))
+
+
 def resolve_locateanything_model(path: str) -> str:
-    """Prefer a local models/ directory when the HF hub id is not cached yet."""
+    """Prefer a local models/ directory only when weight files are present."""
     candidate = Path(path)
-    if candidate.is_dir() and any(candidate.iterdir()):
+    if candidate.is_dir() and _has_model_weights(candidate):
         return str(candidate.resolve())
     default_dir = Path("models") / "LocateAnything-3B"
-    if default_dir.is_dir() and any(default_dir.iterdir()):
+    if default_dir.is_dir() and _has_model_weights(default_dir):
         return str(default_dir.resolve())
     return path
 

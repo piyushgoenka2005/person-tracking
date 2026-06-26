@@ -79,11 +79,11 @@ scripts/
 tests/timeline_engine/
 ```
 
-## Google Colab
+## Google Colab — compare YOLO vs LocateAnything
 
-**Before running:** Runtime → **Change runtime type** → **T4 GPU**.
+**Step 1:** Runtime → **Change runtime type** → **T4 GPU**
 
-### Quick run (YOLO — works immediately)
+**Step 2:** Run this single cell (installs `decord`/`lmdb`, downloads ~6GB LA weights, runs both models):
 
 ```python
 %%bash
@@ -92,40 +92,44 @@ if [ ! -d "person-tracking" ]; then
   git clone https://github.com/piyushgoenka2005/person-tracking.git
 fi
 cd person-tracking
-pip install -q -r requirements.txt
-python scripts/download_models.py
-python -m engine.run --input assets/input.mp4 --output output/ --detector yolo --device cuda --frame-stride 10
+git pull 2>/dev/null || true
+bash scripts/colab_compare.sh . 10
 ```
 
-Or use the setup script:
+Outputs:
+- `output_yolo/` — YOLOv11x detections
+- `output_la/` — LocateAnything-3B detections
 
-```bash
-bash scripts/colab_setup.sh person-tracking yolo
+Both use the same `--frame-stride 10` for fair comparison. Use `--no-la-fallback` so LA never silently becomes YOLO.
+
+**Download results:**
+
+```python
+!zip -r compare_outputs.zip output_yolo output_la
+from google.colab import files
+files.download("compare_outputs.zip")
 ```
 
-### LocateAnything on Colab (GPU required)
+### YOLO only (quick test)
 
 ```python
 %%bash
 set -e
-cd person-tracking  # after clone
-pip install -q -r requirements.txt -r requirements-locateanything.txt huggingface_hub
+cd person-tracking
+pip install -q -r requirements.txt
 python scripts/download_models.py
+python -m engine.run --input assets/input.mp4 --output output_yolo/ --detector yolo --device cuda --frame-stride 10
+```
+
+### LocateAnything only
+
+```bash
+pip install -r requirements-colab.txt
 python scripts/download_locateanything.py
-python -m engine.run --input assets/input.mp4 --output output_la/ --detector locateanything --no-la-remote --device cuda --frame-stride 5
+python -m engine.run --input assets/input.mp4 --output output_la/ --detector locateanything --no-la-remote --device cuda --frame-stride 10 --no-la-fallback
 ```
 
-**Do not use `--la-remote`** on Colab — the public HF Space API is blocked (ZeroGPU limit).
-
-If LocateAnything fails to load, the pipeline **auto-falls back to YOLO** (unless you pass `--no-la-fallback`).
-
-### Download results
-
-```python
-!zip -r output.zip output/
-from google.colab import files
-files.download("output.zip")
-```
+**Do not use `--la-remote`** — the public HF Space API is blocked (ZeroGPU limit).
 
 ## Tests
 

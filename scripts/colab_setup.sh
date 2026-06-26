@@ -13,14 +13,13 @@ fi
 cd "$REPO_DIR"
 
 echo "Installing dependencies..."
-pip install -q -r requirements.txt
-
-if [ "$MODE" = "locateanything" ]; then
-  pip install -q -r requirements-locateanything.txt huggingface_hub
-  python scripts/download_locateanything.py
-fi
+pip install -q -r requirements-colab.txt
 
 python scripts/download_models.py
+
+if [ "$MODE" = "locateanything" ]; then
+  python scripts/download_locateanything.py
+fi
 
 if python -c "import torch; assert torch.cuda.is_available()"; then
   DEVICE=cuda
