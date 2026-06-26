@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files (keep examples)
+.env
+.env.local
+!.env.example
+!.env.development
+!.env.staging
+!.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML artifacts (future)
+models/
+weights/
+*.pt
+*.onnx
+
+# Data (future)
+data/
+uploads/
+artifacts/
+data/storage/
+output/
+output_*/
+output_la_run.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/

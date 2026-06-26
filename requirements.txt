@@ -1,0 +1,20 @@
+# Behaviour Timeline Engine
+numpy>=2.1.0
+opencv-python-headless>=4.10.0
+torch>=2.1.0
+torchvision>=0.16.0
+ultralytics>=8.3.0
+onnxruntime>=1.20.0
+openpyxl>=3.1.5
+scipy>=1.14.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+structlog>=24.4.0
+Pillow>=11.0.0
+
+# Development
+pytest>=8.3.0
+ruff>=0.8.0
+
+# Optional: NVIDIA LocateAnything comparison
+# pip install -r requirements-locateanything.txt

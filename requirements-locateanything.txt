@@ -1,0 +1,14 @@
+# Optional dependencies for NVIDIA LocateAnything-3B integration.
+# Install separately: pip install -r requirements-locateanything.txt
+#
+# Local inference requires a CUDA GPU (recommended: 12GB+ VRAM).
+# CPU inference is possible but very slow for a 3B VLM.
+#
+# Remote testing uses the public HF Space via gradio_client (no local GPU).
+
+transformers==4.57.1
+gradio_client>=1.4.0
+peft
+decord==0.6.0
+lmdb==1.7.5
+Pillow>=11.1.0
