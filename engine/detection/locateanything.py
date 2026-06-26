@@ -365,9 +365,14 @@ class LocateAnythingDetectionService:
                         device=self._worker_kwargs["device"],
                     )
                 except Exception as exc:
-                    raise PerceptionError(
-                        "Failed to load LocateAnything locally. Download weights first: "
+                    hint = (
+                        "pip install -r requirements-locateanything.txt && "
                         "python scripts/download_locateanything.py"
+                    )
+                    if "decord" in str(exc).lower() or "lmdb" in str(exc).lower():
+                        hint = "pip install -r requirements-locateanything.txt"
+                    raise PerceptionError(
+                        f"Failed to load LocateAnything locally ({exc}). Fix: {hint}"
                     ) from exc
         return self._worker
 

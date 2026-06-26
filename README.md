@@ -39,17 +39,17 @@ Place input video at `assets/input.mp4`.
 python -m engine.run --input assets/input.mp4 --output output/
 ```
 
-**Detector switch:** `engine/pipeline.py` has a `DETECTOR SWITCH` block. By default **LocateAnything-3B** (Hugging Face) is active; **YOLOv11x** is commented out. Swap the two blocks to change detector. Compare runs with different output folders, e.g. `--output output_yolo` vs `--output output_locateanything`.
+**Detector:** use `--detector yolo` or `--detector locateanything` (default). No need to edit `pipeline.py`.
 
 ```bash
-# LocateAnything via HF Space (often blocked — see README)
-python -m engine.run --input assets/input.mp4 --output output_la/ --la-remote
+# YOLO (fast, works everywhere including Colab CPU)
+python -m engine.run --input assets/input.mp4 --output output_yolo/ --detector yolo --frame-stride 10
 
-# LocateAnything local (GPU — use Colab or CUDA machine)
-python -m engine.run --input assets/input.mp4 --output output_la/ --no-la-remote --device cuda
+# LocateAnything local (GPU recommended)
+python -m engine.run --input assets/input.mp4 --output output_la/ --detector locateanything --no-la-remote --device cuda --frame-stride 5
 
-# After uncommenting YOLO in pipeline.py:
-python -m engine.run --input assets/input.mp4 --output output_yolo/ --yolo-model models/yolo11x.pt
+# LocateAnything via HF Space (often blocked — auto-falls back to YOLO)
+python -m engine.run --input assets/input.mp4 --output output_la/ --detector locateanything --la-remote
 ```
 
 Options:
@@ -79,15 +79,52 @@ scripts/
 tests/timeline_engine/
 ```
 
-## Google Colab (LocateAnything on GPU)
+## Google Colab
 
-The public HF Space API is often blocked (ZeroGPU duration limit). For a real LocateAnything run, use Colab with a T4 GPU:
+**Before running:** Runtime → **Change runtime type** → **T4 GPU**.
+
+### Quick run (YOLO — works immediately)
+
+```python
+%%bash
+set -e
+if [ ! -d "person-tracking" ]; then
+  git clone https://github.com/piyushgoenka2005/person-tracking.git
+fi
+cd person-tracking
+pip install -q -r requirements.txt
+python scripts/download_models.py
+python -m engine.run --input assets/input.mp4 --output output/ --detector yolo --device cuda --frame-stride 10
+```
+
+Or use the setup script:
 
 ```bash
-pip install -r requirements.txt -r requirements-locateanything.txt huggingface_hub
+bash scripts/colab_setup.sh person-tracking yolo
+```
+
+### LocateAnything on Colab (GPU required)
+
+```python
+%%bash
+set -e
+cd person-tracking  # after clone
+pip install -q -r requirements.txt -r requirements-locateanything.txt huggingface_hub
 python scripts/download_models.py
 python scripts/download_locateanything.py
-python -m engine.run --input assets/input.mp4 --output output_la/ --no-la-remote --device cuda --frame-stride 5
+python -m engine.run --input assets/input.mp4 --output output_la/ --detector locateanything --no-la-remote --device cuda --frame-stride 5
+```
+
+**Do not use `--la-remote`** on Colab — the public HF Space API is blocked (ZeroGPU limit).
+
+If LocateAnything fails to load, the pipeline **auto-falls back to YOLO** (unless you pass `--no-la-fallback`).
+
+### Download results
+
+```python
+!zip -r output.zip output/
+from google.colab import files
+files.download("output.zip")
 ```
 
 ## Tests

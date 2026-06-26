@@ -43,9 +43,11 @@ class TimelineSettings:
     eating_hand_mouth_ratio: float = 0.25
     eating_cycle_min: int = 2
 
-    # LocateAnything-3B (active detector in pipeline.py — see DETECTOR SWITCH comments)
+    # Detector: "locateanything" (default) or "yolo"
+    detector: str = "locateanything"
     locateanything_model: str = "nvidia/LocateAnything-3B"
     locateanything_remote: bool = False  # False = local weights; True = HF Space API
+    la_fallback_yolo: bool = True  # Fall back to YOLO when LocateAnything cannot run
 
     def to_engine_settings(self) -> EngineSettings:
         """Map timeline CLI settings onto shared engine settings."""

@@ -41,10 +41,35 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--pose-model", default="models/rtmpose-m.onnx", help="RTMPose ONNX model")
     parser.add_argument("--frame-stride", type=int, default=1, help="Process every Nth frame")
-    parser.add_argument("--device", default="cpu", choices=["cpu", "cuda"], help="Inference device")
+    parser.add_argument(
+        "--device",
+        default=None,
+        choices=["cpu", "cuda"],
+        help="Inference device (default: cuda if available, else cpu)",
+    )
     parser.add_argument("--batch-size", type=int, default=8, help="YOLO batch size")
     parser.add_argument("--min-segment-s", type=float, default=2.0, help="Minimum segment duration")
+    parser.add_argument(
+        "--detector",
+        choices=["locateanything", "yolo"],
+        default="locateanything",
+        help="Person detector: locateanything (default) or yolo",
+    )
+    parser.add_argument(
+        "--no-la-fallback",
+        action="store_true",
+        help="Do not fall back to YOLO when LocateAnything fails",
+    )
     return parser
+
+
+def _default_device() -> str:
+    try:
+        import torch
+
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
 
 
 def _resolve_yolo_model(path: str) -> str:
@@ -70,24 +95,30 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: input video not found: {input_path}", file=sys.stderr)
         return 1
 
+    device = args.device or _default_device()
+
     settings = TimelineSettings(
         input_path=input_path,
         output_dir=Path(args.output),
         yolo_model_name=_resolve_yolo_model(args.yolo_model),
+        detector=args.detector,
         locateanything_model=_resolve_la_model(args.la_model),
         locateanything_remote=args.la_remote,
+        la_fallback_yolo=not args.no_la_fallback,
         pose_model_path=args.pose_model,
-        device=args.device,
+        device=device,
         frame_stride=args.frame_stride,
         batch_size=args.batch_size,
         min_segment_s=args.min_segment_s,
     )
 
-    if not settings.locateanything_remote:
+    if settings.detector == "locateanything" and not settings.locateanything_remote:
         print(
-            "LocateAnything: local mode (first run downloads ~6GB if not cached). "
-            "Use --frame-stride 10+ on CPU/i3 for faster runs."
+            "LocateAnything: local mode (install requirements-locateanything.txt; "
+            "~6GB download on first run). Use --device cuda on Colab/GPU."
         )
+    if settings.detector == "yolo":
+        print(f"Detector: YOLOv11x on {device}")
 
     pipeline = TimelinePipeline(settings)
     segments, context = pipeline.run()

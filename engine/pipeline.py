@@ -67,37 +67,25 @@ class TimelinePipeline:
             duration_s=meta.duration_ms / 1000.0,
         )
 
-        # ---------------------------------------------------------------------
-        # DETECTOR SWITCH — person detection only (tracking/pose/behaviour unchanged)
-        #
-        # ACTIVE: Hugging Face LocateAnything-3B (open-vocabulary detector)
-        # TO USE YOLO AGAIN: comment the LocateAnything block below and uncomment
-        # the YOLOv11x block.
-        # ---------------------------------------------------------------------
-
-        detection_service = LocateAnythingDetectionService(
-            model_path=resolve_locateanything_model(self._settings.locateanything_model),
-            device=self._settings.device,
-            remote=self._settings.locateanything_remote,
-            min_box_area=self._settings.min_box_area,
-        )
-        detection_model_name = detection_service.model_name
-
-        # --- YOLOv11x (comment LocateAnything block above, uncomment below to switch back) ---
-        # detection_service = DetectionService(self._engine_settings)
-        # detection_model_name = detection_service.model_name
+        detection_service, detection_model_name = self._create_detection_service()
 
         try:
             frame_detections = self._run_detection(ingestion, local_path, detection_service)
         except PerceptionError as exc:
             if (
                 isinstance(detection_service, LocateAnythingDetectionService)
-                and self._settings.locateanything_remote
-                and is_la_remote_unavailable_error(exc)
-            ):
-                self._qa.warn(
-                    "LocateAnything HF Space unavailable (ZeroGPU limit); using YOLOv11x for this run"
+                and self._settings.la_fallback_yolo
+                and (
+                    is_la_remote_unavailable_error(exc)
+                    or not self._settings.locateanything_remote
                 )
+            ):
+                reason = (
+                    "HF Space unavailable (ZeroGPU limit)"
+                    if is_la_remote_unavailable_error(exc)
+                    else "local load/inference failed"
+                )
+                self._qa.warn(f"LocateAnything {reason}; using YOLOv11x for this run")
                 detection_service = DetectionService(self._engine_settings)
                 detection_model_name = f"{detection_service.model_name} (YOLO fallback)"
                 frame_detections = self._run_detection(ingestion, local_path, detection_service)
@@ -159,6 +147,18 @@ class TimelinePipeline:
         export_session_json(output_dir / "session_summary.json", context, segments, transitions)
         qa.validate_exports(output_dir, segments, self._qa)
         return segments, context
+
+    def _create_detection_service(self):
+        if self._settings.detector == "yolo":
+            service = DetectionService(self._engine_settings)
+            return service, service.model_name
+        service = LocateAnythingDetectionService(
+            model_path=resolve_locateanything_model(self._settings.locateanything_model),
+            device=self._settings.device,
+            remote=self._settings.locateanything_remote,
+            min_box_area=self._settings.min_box_area,
+        )
+        return service, service.model_name
 
     def _run_detection(self, ingestion, local_path, detection_service):
         frame_buffer: list[tuple[int, np.ndarray, float]] = []
